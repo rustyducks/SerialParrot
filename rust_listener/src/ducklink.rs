@@ -29,9 +29,12 @@ impl DuckLinkTransport {
 
 impl Transport for DuckLinkTransport {
     fn put(&mut self, c: u8) -> Option<Box<Vec<u8>>> {
+        self.buffer.push(c);
         match self.state {
             RcvState::START1 => {
                 if c == 0xFF {
+                    self.buffer.clear();
+                    self.buffer.push(c);
                     self.state = RcvState::START2;
                 }
             },
@@ -44,10 +47,8 @@ impl Transport for DuckLinkTransport {
             },
             RcvState::LEN => {
                 self.state = RcvState::PAYLOAD(c);
-                self.buffer.clear();
             },
             RcvState::PAYLOAD(n) => {
-                self.buffer.push(c);
                 let n = n-1;
                 if n > 0 {
                     self.state = RcvState::PAYLOAD(n);    
@@ -58,7 +59,8 @@ impl Transport for DuckLinkTransport {
             },
             RcvState::CHK => {
                 self.state = RcvState::START1;
-                let chk = Self::checksum(self.buffer.as_slice());
+                let buf_len = self.buffer.len();
+                let chk = Self::checksum(&self.buffer[3..buf_len-1]);
                 if chk == c {
                     // swap buffer to a new buffer
                     let mut b:Box<Vec<u8>>=Box::new(Vec::with_capacity(10));
