@@ -7,11 +7,29 @@ Timestamped packets are recorded to an output file.
 
 The replay write data to serial while trying to match the timestamps.
 
+## Data format
+
+Data is recorded in a binary format :
+The file begin by the baudrate as an uint32, followed by data records. Data records consist of a timestamp as double (f64), the lenght of the packet as uint16, then the packet itself.
+
+Data are recorded as little endian.
+
+file: `[baudrate: u32][data record][data record][data record][data record]`  
+data record: `[timestamp: double][data lenght: u16][data..]`
+
 ## Record data
+
+The python script had performance issues on raspberry pi, so a Rust version has been made.
+
+### Python version
 `./parrot_listener.py -p <port> -b <baudrate> -f <file>`
 
 Example:  
 `./parrot_listener.py -p /dev/ttyUSB0 -b 230400 -f /tmp/ldata`
+
+### Rust version
+
+`rust_listener -p <port> -b <baudrate> -f <file> [-t <transport>]`
 
 ## Replay data
 
