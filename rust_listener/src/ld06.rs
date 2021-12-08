@@ -1,4 +1,5 @@
 use std::{mem};
+use crate::Transport;
 
 const CRC_TABLE: [u8; 256] = [
     0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3, 0xae, 0xf2, 0xbf, 0x68, 0x25, 0x8b, 0xc6, 0x11, 0x5c,
@@ -48,8 +49,10 @@ impl LD06Transport {
             crc
         })
     }
+}
 
-    pub fn put(&mut self, c: u8) -> Option<Box<Vec<u8>>> {
+impl Transport for LD06Transport {
+    fn put(&mut self, c: u8) -> Option<Box<Vec<u8>>> {
         self.buffer.push(c);
         match self.rcv_state {
             RcvState::WaitStart => {
@@ -75,12 +78,12 @@ impl LD06Transport {
             }
             RcvState::WaitChk => {
                 self.rcv_state = RcvState::WaitStart;
-                // swap buffer to a new buffer
-                let mut b:Box<Vec<u8>>=Box::new(Vec::with_capacity(47));
-                mem::swap(&mut self.buffer, &mut b);
 
-                let calc_check = LD06Transport::checksum(&b);
+                let calc_check = LD06Transport::checksum(&self.buffer);
                 if c == calc_check {
+                    // swap buffer to a new buffer
+                    let mut b:Box<Vec<u8>>=Box::new(Vec::with_capacity(47));
+                    mem::swap(&mut self.buffer, &mut b);
                     return Some(b);
                 } else {
                     println!("checksum failed: {} {}", c, calc_check);
